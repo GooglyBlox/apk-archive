@@ -9,8 +9,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from crawler import db  # noqa: E402
 from crawler.discover import _row  # noqa: E402
 
-# Shapes observed live in the Internet Archive scrape API. Multi-valued title
-# broke a real crawl run after 20k items.
 SCRAPED = [
     {"identifier": "FreeVideov2.9.1",
      "title": ["Free Video(v 2.9.1)", "Free_Video"],
@@ -49,7 +47,6 @@ def main() -> int:
         except Exception as exc:
             failures.append(f"upsert_files raised {type(exc).__name__}: {exc}")
 
-        # raw dicts straight past _row must also survive the db boundary
         try:
             db.upsert_items(conn, [{"identifier": "raw", "title": ["x", "y"],
                                     "item_size": ["9"]}])

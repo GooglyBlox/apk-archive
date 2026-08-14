@@ -117,11 +117,27 @@ def now() -> int:
     return int(time.time())
 
 
+def scalar(value):
+    if isinstance(value, (list, tuple)):
+        value = next((v for v in value if v is not None), None)
+    if value is None or isinstance(value, (str, int, float, bytes)):
+        return value
+    return str(value)
+
+
+def as_int(value):
+    value = scalar(value)
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def upsert_items(conn: sqlite3.Connection, rows: Iterable[dict]) -> int:
     ts = now()
     payload = [
-        (r["identifier"], r.get("title"), r.get("collections"),
-         r.get("publicdate"), r.get("item_size"), ts)
+        (scalar(r["identifier"]), scalar(r.get("title")), scalar(r.get("collections")),
+         scalar(r.get("publicdate")), as_int(r.get("item_size")), ts)
         for r in rows
     ]
     if not payload:
@@ -143,6 +159,13 @@ def upsert_files(conn: sqlite3.Connection, rows: Sequence[dict]) -> int:
     if not rows:
         return 0
     ts = now()
+    payload = []
+    for r in rows:
+        row = {k: scalar(v) for k, v in r.items()}
+        row["size"] = as_int(r.get("size"))
+        row["mtime"] = as_int(r.get("mtime"))
+        row["ts"] = ts
+        payload.append(row)
     conn.executemany(
         """INSERT INTO files(identifier, filename, ext, size, md5, sha1,
                              crc32, mtime, first_seen, last_seen)
@@ -155,7 +178,7 @@ def upsert_files(conn: sqlite3.Connection, rows: Sequence[dict]) -> int:
              crc32     = COALESCE(excluded.crc32, files.crc32),
              mtime     = COALESCE(excluded.mtime, files.mtime),
              last_seen = excluded.last_seen""",
-        [dict(r, ts=ts) for r in rows],
+        payload,
     )
     return len(rows)
 

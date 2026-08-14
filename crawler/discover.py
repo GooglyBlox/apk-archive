@@ -81,14 +81,32 @@ def run(conn, client: IAClient | None = None, *,
     return stats
 
 
+def _scalar(value):
+    if isinstance(value, (list, tuple)):
+        value = next((v for v in value if v is not None), None)
+    if value is None or isinstance(value, (str, int, float)):
+        return value
+    return str(value)
+
+
+def _int(value):
+    value = _scalar(value)
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _row(item: dict) -> dict:
     collections = item.get("collection")
     if isinstance(collections, str):
         collections = [collections]
+    elif isinstance(collections, (list, tuple)):
+        collections = [str(c) for c in collections if c is not None]
     return {
-        "identifier": item["identifier"],
-        "title": item.get("title"),
+        "identifier": _scalar(item["identifier"]),
+        "title": _scalar(item.get("title")),
         "collections": json.dumps(collections) if collections else None,
-        "publicdate": item.get("publicdate"),
-        "item_size": item.get("item_size"),
+        "publicdate": _scalar(item.get("publicdate")),
+        "item_size": _int(item.get("item_size")),
     }

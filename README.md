@@ -22,12 +22,3 @@ Serve the site locally (needs HTTP Range support):
 ```sh
 python tools/serve.py --dir web
 ```
-
-## Sources
-
-Add Internet Archive queries or item identifiers to `data/sources.json`.
-
-## Automation
-
-GitHub Actions handles crawling, enrichment and deployment. The crawler
-database lives as a release asset; the site publishes to GitHub Pages.

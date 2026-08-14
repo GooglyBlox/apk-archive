@@ -1,0 +1,150 @@
+{
+  "queries": [
+    {
+      "query": "subject:android AND -collection:phonesoftware",
+      "total_items": 85612,
+      "sampled": 45,
+      "contaminated_by_known_collections": 0,
+      "genuinely_novel": 45,
+      "novel_with_apks": 1,
+      "apks_in_novel": 1,
+      "apks_per_novel_item": 0.02,
+      "projected_new_apks": 1902,
+      "top": [
+        {
+          "id": "1.2-apkpure",
+          "apks": 1
+        }
+      ]
+    },
+    {
+      "query": "subject:apk AND -collection:phonesoftware",
+      "total_items": 6013,
+      "sampled": 45,
+      "contaminated_by_known_collections": 0,
+      "genuinely_novel": 45,
+      "novel_with_apks": 3,
+      "apks_in_novel": 7,
+      "apks_per_novel_item": 0.16,
+      "projected_new_apks": 935,
+      "top": [
+        {
+          "id": "03.04.20193Uygulama2Oyunapkdelisi.com",
+          "apks": 5
+        },
+        {
+          "id": "05060-epiceviltwins-1.0",
+          "apks": 1
+        },
+        {
+          "id": "1.4-apkpure",
+          "apks": 1
+        }
+      ]
+    },
+    {
+      "query": "mediatype:software AND apk AND -collection:phonesoftware",
+      "total_items": 7061,
+      "sampled": 45,
+      "contaminated_by_known_collections": 1,
+      "genuinely_novel": 44,
+      "novel_with_apks": 11,
+      "apks_in_novel": 14,
+      "apks_per_novel_item": 0.32,
+      "projected_new_apks": 2247,
+      "top": [
+        {
+          "id": "760-livs-750-li-car-drift-simul-1.6-apkpure",
+          "apks": 3
+        },
+        {
+          "id": "Adoraboo-V1.6.020",
+          "apks": 2
+        },
+        {
+          "id": "2.0.18",
+          "apks": 1
+        },
+        {
+          "id": "5.18.5-patchado",
+          "apks": 1
+        },
+        {
+          "id": "0022-talking-rex-v-1-1-5_202607",
+          "apks": 1
+        }
+      ]
+    },
+    {
+      "query": "collection:softwarelibrary AND android",
+      "total_items": 552,
+      "sampled": 45,
+      "contaminated_by_known_collections": 0,
+      "genuinely_novel": 45,
+      "novel_with_apks": 15,
+      "apks_in_novel": 36,
+      "apks_per_novel_item": 0.8,
+      "projected_new_apks": 442,
+      "top": [
+        {
+          "id": "2nd-gear-traffic-v-1.0.3-apkfab.com",
+          "apks": 11
+        },
+        {
+          "id": "2COMMBUILDSSPMC17.6",
+          "apks": 6
+        },
+        {
+          "id": "760-li-x-6carsimulationgame-1.6-apkpure",
+          "apks": 5
+        },
+        {
+          "id": "3d-bus-offroad-simulator-android-game",
+          "apks": 2
+        },
+        {
+          "id": "Adoraboo-V1.6.020",
+          "apks": 2
+        }
+      ]
+    },
+    {
+      "query": "collection:open_source_software AND apk",
+      "total_items": 3757,
+      "sampled": 45,
+      "contaminated_by_known_collections": 1,
+      "genuinely_novel": 44,
+      "novel_with_apks": 17,
+      "apks_in_novel": 37,
+      "apks_per_novel_item": 0.84,
+      "projected_new_apks": 3159,
+      "top": [
+        {
+          "id": "2nd-gear-traffic-v-1.0.3-apkfab.com",
+          "apks": 11
+        },
+        {
+          "id": "2COMMBUILDSSPMC17.6",
+          "apks": 6
+        },
+        {
+          "id": "2COMMBUILDSSPMC17.6_201806",
+          "apks": 3
+        },
+        {
+          "id": "Adoraboo-V1.6.020",
+          "apks": 2
+        },
+        {
+          "id": "00-globalfirm-acapella-5000-aint-no-cause-like-to-be-the-boss-just-war",
+          "apks": 2
+        }
+      ]
+    }
+  ],
+  "known_collections": [
+    "android_apps",
+    "apkarchive",
+    "phonesoftware"
+  ]
+}

@@ -1,0 +1,35 @@
+name: Discovery probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample:
+        description: "Items to sample per query"
+        default: "120"
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Measure APK yield outside the indexed collections
+        env:
+          APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
+        run: python -m crawler probe --sample ${{ inputs.sample || 120 }}
+
+      - run: cat data/probe-report.json
+
+      - name: Commit report
+        run: bash scripts/commit-stats.sh "probe"

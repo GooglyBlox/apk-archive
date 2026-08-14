@@ -1,0 +1,50 @@
+[
+  {
+    "type": "ia_query",
+    "query": "collection:phonesoftware",
+    "enabled": true,
+    "note": "APK Archive / Phone Software Archive. ~228k items; superset of the next two."
+  },
+  {
+    "type": "ia_query",
+    "query": "collection:apkarchive",
+    "enabled": true,
+    "note": "~134k items, 98% already inside phonesoftware (131,142 overlap)."
+  },
+  {
+    "type": "ia_query",
+    "query": "collection:android_apps",
+    "enabled": true,
+    "note": "~15.6k items, 94% already inside phonesoftware (14,636 overlap)."
+  },
+  {
+    "type": "ia_query",
+    "query": "collection:open_source_software AND apk",
+    "enabled": true,
+    "note": "Probe: 3,757 items at 0.84 APK/item, ~3,159 projected. ~63 min to crawl. Good ratio."
+  },
+  {
+    "type": "ia_query",
+    "query": "collection:softwarelibrary AND android",
+    "enabled": true,
+    "note": "Probe: 552 items at 0.80 APK/item, ~442 projected. ~9 min to crawl. Best ratio found."
+  },
+  {
+    "type": "ia_query",
+    "query": "subject:android AND -collection:phonesoftware",
+    "enabled": false,
+    "note": "Probe: 85,612 items at 0.02 APK/item, ~1,900 projected -- roughly 24h of crawling at the measured 1 req/s metadata cap. Not worth it. Re-run `crawler probe` before enabling."
+  },
+  {
+    "type": "ia_query",
+    "query": "mediatype:software AND apk AND -collection:phonesoftware",
+    "enabled": false,
+    "note": "Probe: 7,061 items at 0.32 APK/item, ~2,247 projected, ~2h crawl. Marginal; enable once the main backfill is complete."
+  },
+  {
+    "type": "ia_query",
+    "query": "subject:apk AND -collection:phonesoftware",
+    "enabled": false,
+    "note": "Probe: 6,013 items at 0.16 APK/item, ~935 projected. Marginal."
+  }
+]

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APK Archive</title>
+<meta name="description" content="A searchable index of Android APK files hosted on the Internet Archive.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header>
+  <h1>APK Archive</h1>
+  <button id="random" type="button">Random</button>
+</header>
+
+<form id="filters">
+  <label>Search: <input id="q" type="search" placeholder="Search" autocomplete="off"></label>
+  <label>Package: <input id="pkg" type="search" placeholder="com.gameloft." autocomplete="off"></label>
+  <label class="check">Unique: <input id="unique" type="checkbox" checked></label>
+  <label>min OS: <select id="minsdk"></select></label>
+  <label>max OS: <select id="maxsdk"></select></label>
+  <label>Device: <select id="device">
+    <option value="">Any</option>
+    <option value="phone">Phone</option>
+    <option value="tv">TV</option>
+    <option value="watch">Watch</option>
+    <option value="auto">Automotive</option>
+  </select></label>
+  <button type="submit">Search</button>
+</form>
+
+<div id="status">Loading index…</div>
+
+<nav id="pager" hidden>
+  <button id="prev" type="button">Prev</button>
+  <span id="page"></span>
+  <button id="next" type="button">Next</button>
+</nav>
+
+<main id="results"></main>
+
+<nav id="pager2" hidden>
+  <button id="prev2" type="button">Prev</button>
+  <span id="page2"></span>
+  <button id="next2" type="button">Next</button>
+</nav>
+
+<script src="vendor/index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

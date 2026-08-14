@@ -1,0 +1,54 @@
+name: Enrich
+
+on:
+  schedule:
+    - cron: "43 3,15 * * *"
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Seconds to spend enriching"
+        default: "19800"
+      limit:
+        description: "Max APKs to process (blank = unlimited)"
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: enrich
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Restore database
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/db-restore.sh
+
+      - name: Extract manifests
+        env:
+          APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
+        run: |
+          python -m crawler --budget ${{ inputs.budget || 19800 }} enrich \
+            ${{ inputs.limit && format('--limit {0}', inputs.limit) || '' }}
+
+      - name: Store database
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/db-store.sh
+
+      - name: Commit stats
+        run: bash scripts/commit-stats.sh "enrich"

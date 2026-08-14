@@ -1,0 +1,2 @@
+requests>=2.31
+pyaxmlparser>=0.3.31

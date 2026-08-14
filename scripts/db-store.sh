@@ -11,7 +11,7 @@ if [ ! -f "$SRC" ]; then
 fi
 
 sqlite3 "$SRC" "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
-zstd -19 -T0 --force "$SRC" -o "/tmp/$ASSET"
+zstd -12 -T0 --force "$SRC" -o "/tmp/$ASSET"
 
 if ! gh release view "$TAG" >/dev/null 2>&1; then
   gh release create "$TAG" \

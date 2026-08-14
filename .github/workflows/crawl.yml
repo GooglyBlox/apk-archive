@@ -7,7 +7,7 @@ on:
     inputs:
       budget:
         description: "Seconds to spend crawling"
-        default: "19800"
+        default: "16200"
       skip_discover:
         description: "Skip the discovery phase"
         type: boolean
@@ -43,12 +43,12 @@ jobs:
         if: inputs.skip_discover != true
         env:
           APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
-        run: python -m crawler --budget 900 discover
+        run: python -m crawler --budget 600 discover
 
       - name: Crawl item metadata
         env:
           APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
-        run: python -m crawler --budget ${{ inputs.budget || 19800 }} crawl
+        run: python -m crawler --budget ${{ inputs.budget || 16200 }} crawl
 
       - name: Store database
         env:

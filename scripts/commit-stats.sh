@@ -15,7 +15,7 @@ if git diff --cached --quiet; then
   exit 0
 fi
 
-git commit -m "chore: ${PHASE} stats $(date -u +%Y-%m-%d)"
+git commit -m "${PHASE} stats"
 
 for attempt in 1 2 3; do
   if git push; then

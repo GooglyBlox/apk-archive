@@ -45,11 +45,11 @@ jobs:
       - name: Export web database
         run: |
           mkdir -p web/data
-          python -m crawler export --out web/data/apk.sqlite \
+          python -m crawler export --out web/data/apk.sqlite.png \
             --min-enriched ${{ inputs.min_enriched || 0 }}
 
       - name: Report published size
-        run: du -sh web web/data/apk.sqlite
+        run: du -sh web web/data/apk.sqlite.png
 
       - uses: actions/configure-pages@v5
 

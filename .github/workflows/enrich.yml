@@ -2,7 +2,7 @@ name: Enrich
 
 on:
   schedule:
-    - cron: "43 3,15 * * *"
+    - cron: "0 5,17 * * *"
   workflow_dispatch:
     inputs:
       budget:
@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: enrich
+  group: database
   cancel-in-progress: false
 
 jobs:

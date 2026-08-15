@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: crawl
+  group: database
   cancel-in-progress: false
 
 jobs:

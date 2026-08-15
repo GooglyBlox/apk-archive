@@ -422,7 +422,7 @@
           from: "inline",
           config: {
             serverMode: "full",
-            url: abs("data/apk.sqlite"),
+            url: abs("data/apk.sqlite.png"),
             requestChunkSize: 4096
           }
         }],

@@ -1,15 +1,22 @@
-name: Crawl
+name: Update
 
 on:
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
-      budget:
+      crawl_budget:
         description: "Seconds to spend crawling"
-        default: "16200"
+        default: "10800"
+      enrich_budget:
+        description: "Seconds to spend enriching"
+        default: "5400"
       skip_discover:
         description: "Skip the discovery phase"
+        type: boolean
+        default: false
+      missing_icons:
+        description: "Also revisit already-enriched APKs that have no icon"
         type: boolean
         default: false
 
@@ -21,9 +28,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  crawl:
+  update:
     runs-on: ubuntu-latest
     timeout-minutes: 350
+    env:
+      APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
     steps:
       - uses: actions/checkout@v4
 
@@ -41,14 +50,15 @@ jobs:
 
       - name: Discover new items
         if: inputs.skip_discover != true
-        env:
-          APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
         run: python -m crawler --budget 600 discover
 
       - name: Crawl item metadata
-        env:
-          APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
-        run: python -m crawler --budget ${{ inputs.budget || 16200 }} crawl
+        run: python -m crawler --budget ${{ inputs.crawl_budget || 10800 }} crawl
+
+      - name: Extract manifests
+        run: |
+          python -m crawler --budget ${{ inputs.enrich_budget || 5400 }} enrich \
+            ${{ inputs.missing_icons && '--missing-icons' || '' }}
 
       - name: Store database
         env:
@@ -56,4 +66,4 @@ jobs:
         run: bash scripts/db-store.sh
 
       - name: Commit stats
-        run: bash scripts/commit-stats.sh "crawl"
+        run: bash scripts/commit-stats.sh "update"

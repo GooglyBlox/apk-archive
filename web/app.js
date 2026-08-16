@@ -352,7 +352,7 @@
     var rows = await db.query(
       "SELECT t.*, (SELECT pkg FROM groups WHERE tid = t.tid LIMIT 1) AS pkg " +
       "FROM titles t" + f.sql +
-      " ORDER BY t.label COLLATE NOCASE, t.tid LIMIT :lim OFFSET :off",
+      " ORDER BY t.identified DESC, t.label COLLATE NOCASE, t.tid LIMIT :lim OFFSET :off",
       Object.assign({ ":lim": PAGE_SIZE, ":off": (state.page - 1) * PAGE_SIZE }, f.params));
 
     el.status.textContent = "Results: " + total + (capped ? "+" : "");
@@ -382,7 +382,7 @@
 
     var rows = await db.query(
       "SELECT a.*, g.pkg AS pkg, t.label AS tlabel, t.tid AS tid" + from + f.sql +
-      " ORDER BY t.label COLLATE NOCASE, a.vcode DESC, a.vsort DESC LIMIT :lim OFFSET :off",
+      " ORDER BY t.identified DESC, t.label COLLATE NOCASE, a.vcode DESC, a.vsort DESC LIMIT :lim OFFSET :off",
       Object.assign({ ":lim": PAGE_SIZE, ":off": (state.page - 1) * PAGE_SIZE }, f.params));
 
     el.status.textContent = "Results: " + total + (capped ? "+" : "");

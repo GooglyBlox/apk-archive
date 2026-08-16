@@ -79,7 +79,7 @@ CREATE INDEX idx_apps_gid    ON apps(gid, vcode DESC, vsort DESC);
 CREATE INDEX idx_apps_md5    ON apps(md5);
 CREATE INDEX idx_groups_pkg  ON groups(pkg_lc);
 CREATE INDEX idx_groups_tid  ON groups(tid);
-CREATE INDEX idx_titles_sort ON titles(label COLLATE NOCASE, tid);
+CREATE INDEX idx_titles_sort ON titles(identified DESC, label COLLATE NOCASE, tid);
 CREATE INDEX idx_titles_sdk  ON titles(min_sdk);
 """
 

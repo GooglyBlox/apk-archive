@@ -1,6 +1,9 @@
 name: Deploy site
 
 on:
+  workflow_run:
+    workflows: [Crawl, Enrich]
+    types: [completed]
   schedule:
     - cron: "5 6 * * *"
   workflow_dispatch:

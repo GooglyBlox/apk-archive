@@ -242,16 +242,20 @@ def uncrawled_items(conn: sqlite3.Connection, limit: int) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-def enrichment_queue(conn: sqlite3.Connection, limit: int) -> list[sqlite3.Row]:
+def enrichment_queue(conn: sqlite3.Connection, limit: int, *,
+                     missing_icons: bool = False) -> list[sqlite3.Row]:
+    states = "f.enrich_state IN (0, 3)"
+    if missing_icons:
+        states = f"({states} OR (f.enrich_state = 1 AND f.icon IS NULL))"
     return conn.execute(
-        """SELECT f.id, f.identifier, f.filename, f.size, f.ext,
-                  i.node_server, i.node_dir
-           FROM files f JOIN items i USING(identifier)
-           WHERE f.enrich_state IN (0, 3)
-                 AND f.ext IN ('.apk', '.xapk', '.apks', '.apkm')
-                 AND f.size > 0 AND i.node_server IS NOT NULL
-           ORDER BY f.size
-           LIMIT ?""",
+        f"""SELECT f.id, f.identifier, f.filename, f.size, f.ext,
+                   i.node_server, i.node_dir
+            FROM files f JOIN items i USING(identifier)
+            WHERE {states}
+                  AND f.ext IN ('.apk', '.xapk', '.apks', '.apkm')
+                  AND f.size > 0 AND i.node_server IS NOT NULL
+            ORDER BY f.size
+            LIMIT ?""",
         (limit,),
     ).fetchall()
 

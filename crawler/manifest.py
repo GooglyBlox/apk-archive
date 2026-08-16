@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+from io import BytesIO
+
+from PIL import Image
 
 from .config import (ANDROID_NS, DENSITY_ORDER, DEVICE_FEATURES, ICON_EXTENSIONS,
                      ICON_PX, ICON_QUALITY, MAX_ARSC_COMPRESSED_BYTES,
@@ -222,10 +225,6 @@ def _read_image(rz: RemoteZip, path: str) -> bytes | None:
 
 def _thumbnail(raw: bytes) -> bytes | None:
     try:
-        from io import BytesIO
-
-        from PIL import Image
-
         img = Image.open(BytesIO(raw))
         img.load()
         if img.mode not in ("RGBA", "RGB"):
@@ -234,7 +233,7 @@ def _thumbnail(raw: bytes) -> bytes | None:
         out = BytesIO()
         img.save(out, format="WEBP", quality=ICON_QUALITY, method=4)
         return out.getvalue()
-    except Exception:
+    except (OSError, ValueError):
         return None
 
 

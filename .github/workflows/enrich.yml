@@ -11,6 +11,10 @@ on:
       limit:
         description: "Max APKs to process (blank = unlimited)"
         default: ""
+      missing_icons:
+        description: "Also revisit already-enriched APKs that have no icon"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -43,7 +47,8 @@ jobs:
           APK_ARCHIVE_UA: "apk-archive/0.1 (+https://github.com/${{ github.repository }})"
         run: |
           python -m crawler --budget ${{ inputs.budget || 16200 }} enrich \
-            ${{ inputs.limit && format('--limit {0}', inputs.limit) || '' }}
+            ${{ inputs.limit && format('--limit {0}', inputs.limit) || '' }} \
+            ${{ inputs.missing_icons && '--missing-icons' || '' }}
 
       - name: Store database
         env:

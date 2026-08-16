@@ -1,2 +1,4 @@
 requests>=2.31
 pyaxmlparser>=0.3.31
+Pillow>=10.0
+zstandard>=0.22

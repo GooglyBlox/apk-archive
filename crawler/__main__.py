@@ -24,6 +24,7 @@ def main(argv=None) -> int:
 
     p_enrich = sub.add_parser("enrich")
     p_enrich.add_argument("--limit", type=int)
+    p_enrich.add_argument("--missing-icons", action="store_true")
 
     p_export = sub.add_parser("export")
     p_export.add_argument("--out", default="build/apk.sqlite")
@@ -51,7 +52,8 @@ def main(argv=None) -> int:
         elif args.command == "crawl":
             result = crawl.run(conn, budget_seconds=args.budget, limit=args.limit)
         elif args.command == "enrich":
-            result = enrich.run(conn, budget_seconds=args.budget, limit=args.limit)
+            result = enrich.run(conn, budget_seconds=args.budget, limit=args.limit,
+                                missing_icons=args.missing_icons)
         elif args.command == "export":
             result = export.run(conn, args.out, min_enriched=args.min_enriched)
         else:

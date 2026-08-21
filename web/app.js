@@ -301,8 +301,7 @@
     syncPageSize();
 
     if (state.tid) await renderTitle();
-    else if (state.unique) await renderTitles();
-    else await renderApps();
+    else await renderList();
   }
 
   async function renderTitle() {
@@ -337,64 +336,104 @@
     });
   }
 
-  async function renderTitles() {
-    var f = buildFilter("t");
-    el.status.textContent = "Searching…";
+  var pageCache = new Map();
+  var CACHE_MAX = 8;
 
-    var counted = await db.query(
-      "SELECT COUNT(*) AS n FROM (SELECT 1 FROM titles t" + f.sql +
-      " LIMIT " + COUNT_CAP + ")", f.params);
-    var total = counted[0].n;
-    var capped = total >= COUNT_CAP;
-    var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (state.page > pages) state.page = pages;
-
-    var rows = await db.query(
-      "SELECT t.*, (SELECT pkg FROM groups WHERE tid = t.tid LIMIT 1) AS pkg " +
-      "FROM titles t" + f.sql +
-      " ORDER BY t.identified DESC, t.label COLLATE NOCASE, t.tid LIMIT :lim OFFSET :off",
-      Object.assign({ ":lim": PAGE_SIZE, ":off": (state.page - 1) * PAGE_SIZE }, f.params));
-
-    el.status.textContent = "Results: " + total + (capped ? "+" : "");
-    setPager(state.page, pages, capped);
-    if (!rows.length) {
-      el.results.innerHTML = '<p class="empty">No matches.</p>';
-      return;
-    }
-    var icons = await loadIcons(rows.map(function (t) { return t.tid; }));
-    rows.forEach(function (t) {
-      el.results.appendChild(titleCard(t, icons.get(t.tid)));
-    });
+  function filterKey() {
+    return [state.q, state.pkg, state.unique ? 1 : 0, state.minsdk,
+            state.maxsdk, state.device, PAGE_SIZE].join("");
   }
 
-  async function renderApps() {
-    var f = buildFilter("t");
-    el.status.textContent = "Searching…";
+  function cacheGet(page) {
+    return pageCache.get(filterKey() + "" + page);
+  }
 
-    var from = " FROM apps a JOIN groups g USING(gid) JOIN titles t ON t.tid = g.tid";
+  function cacheSet(page, value) {
+    var key = filterKey() + "" + page;
+    pageCache.set(key, value);
+    while (pageCache.size > CACHE_MAX) {
+      pageCache.delete(pageCache.keys().next().value);
+    }
+  }
+
+  async function fetchPage(page) {
+    var hit = cacheGet(page);
+    if (hit) return hit;
+
+    var f = buildFilter("t");
+    var from = state.unique
+      ? " FROM titles t"
+      : " FROM apps a JOIN groups g USING(gid) JOIN titles t ON t.tid = g.tid";
+    var select = state.unique
+      ? "SELECT t.*, (SELECT pkg FROM groups WHERE tid = t.tid LIMIT 1) AS pkg"
+      : "SELECT a.*, g.pkg AS pkg, t.label AS tlabel, t.tid AS tid";
+    var order = state.unique
+      ? " ORDER BY t.identified DESC, t.label COLLATE NOCASE, t.tid"
+      : " ORDER BY t.identified DESC, t.label COLLATE NOCASE, a.vcode DESC, a.vsort DESC";
+
     var counted = await db.query(
       "SELECT COUNT(*) AS n FROM (SELECT 1" + from + f.sql +
       " LIMIT " + COUNT_CAP + ")", f.params);
     var total = counted[0].n;
-    var capped = total >= COUNT_CAP;
     var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    if (state.page > pages) state.page = pages;
+    var clamped = Math.min(Math.max(1, page), pages);
 
     var rows = await db.query(
-      "SELECT a.*, g.pkg AS pkg, t.label AS tlabel, t.tid AS tid" + from + f.sql +
-      " ORDER BY t.identified DESC, t.label COLLATE NOCASE, a.vcode DESC, a.vsort DESC LIMIT :lim OFFSET :off",
-      Object.assign({ ":lim": PAGE_SIZE, ":off": (state.page - 1) * PAGE_SIZE }, f.params));
+      select + from + f.sql + order + " LIMIT :lim OFFSET :off",
+      Object.assign({ ":lim": PAGE_SIZE, ":off": (clamped - 1) * PAGE_SIZE }, f.params));
 
-    el.status.textContent = "Results: " + total + (capped ? "+" : "");
-    setPager(state.page, pages, capped);
-    if (!rows.length) {
+    var result = { total: total, capped: total >= COUNT_CAP, pages: pages, rows: rows };
+    cacheSet(clamped, result);
+    return result;
+  }
+
+  var prefetchTimer = null;
+
+  function schedulePrefetch(page, pages) {
+    clearTimeout(prefetchTimer);
+    prefetchTimer = setTimeout(function () {
+      [page + 1, page - 1].forEach(function (p) {
+        if (p < 1 || p > pages || cacheGet(p)) return;
+        fetchPage(p).then(function (r) {
+          var tids = r.rows.map(function (x) { return x.tid; });
+          var unique = Array.from(new Set(tids));
+          if (unique.length) {
+            db.query("SELECT tid, webp FROM icons WHERE tid IN (" +
+                     unique.join(",") + ")").catch(function () {});
+          }
+        }).catch(function () {});
+      });
+    }, 150);
+  }
+
+  async function renderList() {
+    el.status.textContent = "Searching…";
+    var data = await fetchPage(state.page);
+    if (state.page > data.pages) state.page = data.pages;
+
+    if (!data.rows.length) {
       el.results.innerHTML = '<p class="empty">No matches.</p>';
+      el.status.textContent = "Results: 0";
+      setPager(1, 1, false);
       return;
     }
-    var icons = await loadIcons(rows.map(function (a) { return a.tid; }));
-    rows.forEach(function (a) {
-      el.results.appendChild(appCard(a, a.tlabel || a.fn, icons.get(a.tid), true));
-    });
+
+    var icons = await loadIcons(data.rows.map(function (r) { return r.tid; }));
+    var frag = document.createDocumentFragment();
+    if (state.unique) {
+      data.rows.forEach(function (t) {
+        frag.appendChild(titleCard(t, icons.get(t.tid)));
+      });
+    } else {
+      data.rows.forEach(function (a) {
+        frag.appendChild(appCard(a, a.tlabel || a.fn, icons.get(a.tid), true));
+      });
+    }
+    el.results.appendChild(frag);
+
+    el.status.textContent = "Results: " + data.total + (data.capped ? "+" : "");
+    setPager(state.page, data.pages, data.capped);
+    schedulePrefetch(state.page, data.pages);
   }
 
   function fillSdkOptions() {

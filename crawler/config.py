@@ -31,6 +31,7 @@ ICON_PX = int(os.environ.get("APK_ARCHIVE_ICON_PX", "96"))
 ICON_QUALITY = int(os.environ.get("APK_ARCHIVE_ICON_QUALITY", "80"))
 MAX_ICON_ENTRY_BYTES = int(os.environ.get("APK_ARCHIVE_MAX_ICON", str(512 * 1024)))
 MAX_NESTED_APK_BYTES = int(os.environ.get("APK_ARCHIVE_MAX_NESTED", str(32 * 1024 * 1024)))
+ICON_RETRY_BEFORE = int(os.environ.get("APK_ARCHIVE_ICON_RETRY_BEFORE", "1787308085"))
 ICON_EXTENSIONS = (".png", ".webp", ".jpg", ".jpeg")
 DENSITY_ORDER = ["xhdpi", "xxhdpi", "hdpi", "xxxhdpi", "mdpi", "ldpi", "nodpi", "tvdpi"]
 

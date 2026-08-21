@@ -46,7 +46,7 @@ def _quiet():
 
 def run(conn, client: IAClient | None = None, *,
         budget_seconds: int = DEFAULT_BUDGET_SECONDS,
-        limit: int | None = None, missing_icons: bool = False) -> dict:
+        limit: int | None = None) -> dict:
     client = client or IAClient()
     started = time.monotonic()
     run_id = db.start_run(conn, "enrich")
@@ -60,7 +60,7 @@ def run(conn, client: IAClient | None = None, *,
             break
 
         take = BATCH if limit is None else min(BATCH, limit - processed)
-        batch = db.enrichment_queue(conn, take, missing_icons=missing_icons)
+        batch = db.enrichment_queue(conn, take)
         if not batch:
             print("[enrich] queue empty")
             break

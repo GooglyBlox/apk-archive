@@ -15,10 +15,6 @@ on:
         description: "Skip the discovery phase"
         type: boolean
         default: false
-      missing_icons:
-        description: "Also revisit already-enriched APKs that have no icon"
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -56,9 +52,7 @@ jobs:
         run: python -m crawler --budget ${{ inputs.crawl_budget || 10800 }} crawl
 
       - name: Extract manifests
-        run: |
-          python -m crawler --budget ${{ inputs.enrich_budget || 5400 }} enrich \
-            ${{ inputs.missing_icons && '--missing-icons' || '' }}
+        run: python -m crawler --budget ${{ inputs.enrich_budget || 5400 }} enrich
 
       - name: Store database
         env:

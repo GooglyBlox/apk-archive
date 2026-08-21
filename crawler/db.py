@@ -5,6 +5,8 @@ import time
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .config import ICON_RETRY_BEFORE, STATE_DONE
+
 SCHEMA_VERSION = 1
 
 SCHEMA = """
@@ -200,16 +202,26 @@ def mark_item_crawled(conn: sqlite3.Connection, identifier: str, *,
 
 
 def record_enrichment(conn: sqlite3.Connection, file_id: int, data: dict) -> None:
+    if data["state"] == STATE_DONE:
+        conn.execute(
+            """UPDATE files SET package=?, app_label=?, version_name=?,
+                                version_code=?, min_sdk=?, target_sdk=?,
+                                features=?, icon=?, manifest_bytes=?,
+                                enrich_state=?, enrich_error=NULL, enriched_at=?
+               WHERE id=?""",
+            (data.get("package"), data.get("app_label"), data.get("version_name"),
+             data.get("version_code"), data.get("min_sdk"), data.get("target_sdk"),
+             data.get("features"), data.get("icon"), data.get("manifest_bytes"),
+             STATE_DONE, now(), file_id),
+        )
+        return
     conn.execute(
-        """UPDATE files SET package=?, app_label=?, version_name=?,
-                            version_code=?, min_sdk=?, target_sdk=?,
-                            features=?, icon=?, manifest_bytes=?,
-                            enrich_state=?, enrich_error=?, enriched_at=?
+        """UPDATE files SET
+             enrich_state = CASE WHEN enrich_state = ? THEN ? ELSE ? END,
+             enrich_error = ?,
+             enriched_at  = ?
            WHERE id=?""",
-        (data.get("package"), data.get("app_label"), data.get("version_name"),
-         data.get("version_code"), data.get("min_sdk"), data.get("target_sdk"),
-         data.get("features"), data.get("icon"), data.get("manifest_bytes"),
-         data["state"], data.get("error"), now(), file_id),
+        (STATE_DONE, STATE_DONE, data["state"], data.get("error"), now(), file_id),
     )
 
 
@@ -242,21 +254,19 @@ def uncrawled_items(conn: sqlite3.Connection, limit: int) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-def enrichment_queue(conn: sqlite3.Connection, limit: int, *,
-                     missing_icons: bool = False) -> list[sqlite3.Row]:
-    states = "f.enrich_state IN (0, 3)"
-    if missing_icons:
-        states = f"({states} OR (f.enrich_state = 1 AND f.icon IS NULL))"
+def enrichment_queue(conn: sqlite3.Connection, limit: int) -> list[sqlite3.Row]:
     return conn.execute(
-        f"""SELECT f.id, f.identifier, f.filename, f.size, f.ext,
-                   i.node_server, i.node_dir
-            FROM files f JOIN items i USING(identifier)
-            WHERE {states}
-                  AND f.ext IN ('.apk', '.xapk', '.apks', '.apkm')
-                  AND f.size > 0 AND i.node_server IS NOT NULL
-            ORDER BY f.size
-            LIMIT ?""",
-        (limit,),
+        """SELECT f.id, f.identifier, f.filename, f.size, f.ext,
+                  i.node_server, i.node_dir
+           FROM files f JOIN items i USING(identifier)
+           WHERE (f.enrich_state IN (0, 3)
+                  OR (f.enrich_state = 1 AND f.icon IS NULL
+                      AND f.enriched_at < ?))
+                 AND f.ext IN ('.apk', '.xapk', '.apks', '.apkm')
+                 AND f.size > 0 AND i.node_server IS NOT NULL
+           ORDER BY f.enrich_state, f.size
+           LIMIT ?""",
+        (ICON_RETRY_BEFORE, limit),
     ).fetchall()
 
 

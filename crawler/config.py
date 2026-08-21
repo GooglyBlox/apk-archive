@@ -25,7 +25,7 @@ APK_EXTENSIONS = (".apk", ".xapk", ".apks", ".apkm", ".aab")
 ENRICHABLE_EXTENSIONS = (".apk", ".xapk", ".apks", ".apkm")
 
 EOCD_TAIL_BYTES = 65557
-MAX_ARSC_COMPRESSED_BYTES = int(os.environ.get("APK_ARCHIVE_MAX_ARSC", str(2 * 1024 * 1024)))
+MAX_ARSC_COMPRESSED_BYTES = int(os.environ.get("APK_ARCHIVE_MAX_ARSC", str(12 * 1024 * 1024)))
 
 ICON_PX = int(os.environ.get("APK_ARCHIVE_ICON_PX", "96"))
 ICON_QUALITY = int(os.environ.get("APK_ARCHIVE_ICON_QUALITY", "80"))

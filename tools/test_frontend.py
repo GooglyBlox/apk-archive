@@ -64,8 +64,8 @@ def main() -> int:
             print(f"range requests   : {len(ranged)}")
             if cards == 0:
                 failures.append("no cards rendered on initial load")
-            if not ranged:
-                failures.append("no HTTP Range requests issued (httpvfs not working)")
+            if ranged:
+                failures.append(f"initial paint should need no range requests, saw {len(ranged)}")
 
             page.fill("#q", "asphalt")
             page.click("#filters button[type=submit]")
@@ -77,6 +77,8 @@ def main() -> int:
                 failures.append("search 'asphalt' returned no cards")
             if "q=asphalt" not in page.url:
                 failures.append(f"search not reflected in URL: {page.url}")
+            if not ranged:
+                failures.append("no Range requests after search (httpvfs not working)")
 
             page.fill("#q", "")
             page.fill("#pkg", "com.gameloft")

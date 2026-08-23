@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sqlite3
@@ -9,6 +10,7 @@ from pathlib import Path
 from .config import API_LEVELS, STATE_DONE
 
 PAGE_SIZE = 4096
+FIRST_PAGE_ROWS = 40
 
 WEB_SCHEMA = """
 CREATE TABLE titles (
@@ -313,6 +315,24 @@ def run(conn: sqlite3.Connection, out_path: str, *, min_enriched: int = 0) -> di
     )
     web.commit()
     web.execute("VACUUM")
+
+    first = []
+    for t in web.execute(
+            """SELECT t.tid, t.label, t.dev, t.min_sdk, t.editions,
+                      (SELECT pkg FROM groups WHERE tid = t.tid LIMIT 1) AS pkg,
+                      (SELECT webp FROM icons WHERE tid = t.tid) AS webp
+               FROM titles t
+               ORDER BY t.identified DESC, t.label COLLATE NOCASE, t.tid
+               LIMIT ?""", (FIRST_PAGE_ROWS,)):
+        first.append({
+            "tid": t[0], "label": t[1], "dev": t[2], "min_sdk": t[3],
+            "editions": t[4], "pkg": t[5],
+            "icon": ("data:image/webp;base64," +
+                     base64.b64encode(t[6]).decode()) if t[6] else None,
+        })
+    Path(out.parent / "first.json").write_text(
+        json.dumps({"total": len(titles), "rows": first},
+                   separators=(",", ":")), encoding="utf-8")
     web.close()
 
     return {

@@ -8,8 +8,11 @@
   var iconUrls = [];
 
   var db = null;
+  var dbReady = null;
   var apiLevels = {};
   var maxTid = 0;
+  var totalTitles = 0;
+  var totalApps = 0;
   var state = {};
 
   var el = {
@@ -146,6 +149,7 @@
   }
 
   async function loadIcons(tids) {
+    await ensureDb();
     var map = new Map();
     var unique = Array.from(new Set(tids));
     if (!unique.length) return map;
@@ -305,6 +309,7 @@
   }
 
   async function renderTitle() {
+    await ensureDb();
     var t = (await db.query("SELECT * FROM titles WHERE tid = :t",
                             { ":t": state.tid }))[0];
     if (!t) { el.status.textContent = "Not found"; return; }
@@ -356,7 +361,13 @@
     }
   }
 
+  async function ensureDb() {
+    if (db) return;
+    if (dbReady) await dbReady;
+  }
+
   async function fetchPage(page) {
+    await ensureDb();
     var hit = cacheGet(page);
     if (hit) return hit;
 
@@ -371,10 +382,15 @@
       ? " ORDER BY t.identified DESC, t.label COLLATE NOCASE, t.tid"
       : " ORDER BY t.identified DESC, t.label COLLATE NOCASE, a.vcode DESC, a.vsort DESC";
 
-    var counted = await db.query(
-      "SELECT COUNT(*) AS n FROM (SELECT 1" + from + f.sql +
-      " LIMIT " + COUNT_CAP + ")", f.params);
-    var total = counted[0].n;
+    var total;
+    if (!f.sql) {
+      total = state.unique ? totalTitles : totalApps;
+    } else {
+      var counted = await db.query(
+        "SELECT COUNT(*) AS n FROM (SELECT 1" + from + f.sql +
+        " LIMIT " + COUNT_CAP + ")", f.params);
+      total = counted[0].n;
+    }
     var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     var clamped = Math.min(Math.max(1, page), pages);
 
@@ -382,7 +398,8 @@
       select + from + f.sql + order + " LIMIT :lim OFFSET :off",
       Object.assign({ ":lim": PAGE_SIZE, ":off": (clamped - 1) * PAGE_SIZE }, f.params));
 
-    var result = { total: total, capped: total >= COUNT_CAP, pages: pages, rows: rows };
+    var result = { total: total, capped: !!f.sql && total >= COUNT_CAP,
+                   pages: pages, rows: rows };
     cacheSet(clamped, result);
     return result;
   }
@@ -452,7 +469,50 @@
     });
   }
 
+  function isDefaultView() {
+    return !state.tid && state.unique && !state.q && !state.pkg &&
+           !state.minsdk && !state.maxsdk && !state.device && state.page === 1;
+  }
+
+  async function renderFirstPaint() {
+    var res = await fetch("data/first.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("first.json " + res.status);
+    var data = await res.json();
+    if (data.rows.length < PAGE_SIZE) throw new Error("baked page too small");
+    var rows = data.rows.slice(0, PAGE_SIZE);
+
+    var decoding = [];
+    rows.forEach(function (r) {
+      if (!r.icon) return;
+      var img = new Image();
+      img.src = r.icon;
+      decoding.push(img.decode().catch(function () {}));
+    });
+    await Promise.all(decoding);
+
+    var frag = document.createDocumentFragment();
+    rows.forEach(function (t) { frag.appendChild(titleCard(t, r_icon(t))); });
+    el.results.appendChild(frag);
+    el.status.textContent = "Results: " + data.total;
+    setPager(1, Math.max(1, Math.ceil(data.total / PAGE_SIZE)), false);
+  }
+
+  function r_icon(t) { return t.icon || undefined; }
+
   async function boot() {
+    var painted = false;
+    state = readState();
+    syncPageSize();
+    if (isDefaultView()) {
+      try {
+        await renderFirstPaint();
+        painted = true;
+      } catch (err) {
+        painted = false;
+      }
+    }
+
+    dbReady = (async function () {
     var worker;
     try {
       var abs = function (p) { return new URL(p, location.href).toString(); };
@@ -462,7 +522,7 @@
           config: {
             serverMode: "full",
             url: abs("data/apk.sqlite.png"),
-            requestChunkSize: 4096
+            requestChunkSize: 65536
           }
         }],
         abs("vendor/sqlite.worker.js"),
@@ -470,7 +530,7 @@
       );
     } catch (err) {
       el.status.textContent = "Could not load the index: " + err;
-      return;
+      throw err;
     }
     db = worker.db;
 
@@ -480,9 +540,17 @@
     });
     apiLevels = JSON.parse(meta.api_levels || "{}");
     maxTid = Number(meta.max_tid || 0);
+    totalTitles = Number(meta.titles || 0);
+    totalApps = Number(meta.apps || 0);
     fillSdkOptions();
+    })();
+    await dbReady;
 
     state = readState();
+    if (painted && isDefaultView()) {
+      schedulePrefetch(1, Math.max(1, Math.ceil(totalTitles / PAGE_SIZE)));
+      return;
+    }
     await render();
   }
 
@@ -501,6 +569,7 @@
   });
 
   el.random.addEventListener("click", async function () {
+    await ensureDb();
     if (!db || !maxTid) return;
     var r = [];
     for (var attempt = 0; attempt < 4 && !r.length; attempt++) {

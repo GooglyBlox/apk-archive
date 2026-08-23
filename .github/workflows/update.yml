@@ -7,10 +7,10 @@ on:
     inputs:
       crawl_budget:
         description: "Seconds to spend crawling"
-        default: "10800"
+        default: "5400"
       enrich_budget:
         description: "Seconds to spend enriching"
-        default: "5400"
+        default: "10800"
       skip_discover:
         description: "Skip the discovery phase"
         type: boolean
@@ -49,10 +49,10 @@ jobs:
         run: python -m crawler --budget 600 discover
 
       - name: Crawl item metadata
-        run: python -m crawler --budget ${{ inputs.crawl_budget || 10800 }} crawl
+        run: python -m crawler --budget ${{ inputs.crawl_budget || 5400 }} crawl
 
       - name: Extract manifests
-        run: python -m crawler --budget ${{ inputs.enrich_budget || 5400 }} enrich
+        run: python -m crawler --budget ${{ inputs.enrich_budget || 10800 }} enrich
 
       - name: Store database
         env:

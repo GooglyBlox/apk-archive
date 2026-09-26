@@ -3,6 +3,7 @@ set -euo pipefail
 
 TAG="${DB_RELEASE_TAG:-data}"
 ASSET="apk-archive.sqlite.zst"
+STAGED="$ASSET.new"
 SRC="data/apk-archive.sqlite"
 
 if [ ! -f "$SRC" ]; then
@@ -11,7 +12,7 @@ if [ ! -f "$SRC" ]; then
 fi
 
 sqlite3 "$SRC" "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
-zstd -12 -T0 --force "$SRC" -o "/tmp/$ASSET"
+zstd -12 -T0 --force "$SRC" -o "/tmp/$STAGED"
 
 if ! gh release view "$TAG" >/dev/null 2>&1; then
   gh release create "$TAG" \
@@ -20,5 +21,17 @@ if ! gh release view "$TAG" >/dev/null 2>&1; then
     --latest=false
 fi
 
-gh release upload "$TAG" "/tmp/$ASSET" --clobber
-echo "Stored $ASSET ($(du -h "/tmp/$ASSET" | cut -f1))"
+asset_url() {
+  gh release view "$TAG" --json assets \
+    --jq ".assets[] | select(.name == \"$1\") | .apiUrl"
+}
+
+gh release upload "$TAG" "/tmp/$STAGED" --clobber
+LIVE="$(asset_url "$ASSET")"
+if [ -n "$LIVE" ]; then
+  gh api -X DELETE "$LIVE"
+fi
+gh api -X PATCH "$(asset_url "$STAGED")" -f name="$ASSET" >/dev/null
+
+echo "Stored $ASSET ($(du -h "/tmp/$STAGED" | cut -f1))"
+rm -f "/tmp/$STAGED"

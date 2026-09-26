@@ -17,6 +17,7 @@ MAX_RETRIES = 5
 BACKOFF_BASE = 2.0
 BACKOFF_CAP = 60.0
 REQUEST_TIMEOUT = 90.0
+FILE_TIMEOUT = int(os.environ.get("APK_ARCHIVE_FILE_TIMEOUT", "600"))
 
 DEFAULT_BUDGET_SECONDS = int(os.environ.get("APK_ARCHIVE_BUDGET", str(int(5.5 * 3600))))
 CHECKPOINT_INTERVAL = int(os.environ.get("APK_ARCHIVE_CHECKPOINT", "300"))
@@ -26,6 +27,7 @@ ENRICHABLE_EXTENSIONS = (".apk", ".xapk", ".apks", ".apkm")
 
 EOCD_TAIL_BYTES = 65557
 MAX_ARSC_COMPRESSED_BYTES = int(os.environ.get("APK_ARCHIVE_MAX_ARSC", str(12 * 1024 * 1024)))
+MAX_PARSE_READ_FACTOR = int(os.environ.get("APK_ARCHIVE_MAX_READ_FACTOR", "4"))
 
 ICON_PX = int(os.environ.get("APK_ARCHIVE_ICON_PX", "96"))
 ICON_QUALITY = int(os.environ.get("APK_ARCHIVE_ICON_QUALITY", "80"))

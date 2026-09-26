@@ -1,47 +1,17 @@
 from __future__ import annotations
 
-import contextlib
-import sys
+import queue
+import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 from . import db
-from .config import (DEFAULT_BUDGET_SECONDS, NODE_CONCURRENCY, STATE_DONE,
-                     STATE_PERMANENT, STATE_RETRYABLE)
+from .config import (DEFAULT_BUDGET_SECONDS, FILE_TIMEOUT, NODE_CONCURRENCY,
+                     STATE_DONE, STATE_PERMANENT, STATE_RETRYABLE)
 from .ia import IAClient, IAError
 from .manifest import ManifestError, extract
 from .remotezip import RemoteZip, RemoteZipError
 
 BATCH = 500
-
-NOISE = ("res1 is not zero", "Invalid start_offset", "Skipping",
-         "invalid decoded string length")
-
-
-class _FilteredStdout:
-    def __init__(self, target):
-        self.target = target
-
-    def write(self, text):
-        if text.strip() and any(n in text for n in NOISE):
-            return len(text)
-        return self.target.write(text)
-
-    def flush(self):
-        self.target.flush()
-
-    def __getattr__(self, name):
-        return getattr(self.target, name)
-
-
-@contextlib.contextmanager
-def _quiet():
-    original = sys.stdout
-    sys.stdout = _FilteredStdout(original)
-    try:
-        yield
-    finally:
-        sys.stdout = original
 
 
 def run(conn, client: IAClient | None = None, *,
@@ -65,8 +35,14 @@ def run(conn, client: IAClient | None = None, *,
             print("[enrich] queue empty")
             break
 
-        with _quiet(), ThreadPoolExecutor(NODE_CONCURRENCY) as pool:
-            results = list(pool.map(lambda r: _one(client, r), batch))
+        results, hung = _process(client, batch)
+        for row in hung:
+            print(f"[enrich] {row['identifier']}/{row['filename']} "
+                  f"hung for over {FILE_TIMEOUT}s; marking it failed")
+            results.append((row["id"], {
+                "state": STATE_PERMANENT,
+                "error": f"hung for over {FILE_TIMEOUT}s",
+            }))
 
         for file_id, data in results:
             db.record_enrichment(conn, file_id, data)
@@ -80,10 +56,53 @@ def run(conn, client: IAClient | None = None, *,
         print(f"[enrich] {processed} done, {errors} failed, "
               f"{processed/max(elapsed,1):.2f} apk/s, {mb:.0f} MB")
 
+        if hung:
+            print("[enrich] stopping early")
+            break
+
     stats = db.stats(conn)
     db.finish_run(conn, run_id, processed, errors, client.bytes_downloaded,
                   note=f"files_enriched={stats['files_enriched']}")
     return stats
+
+
+def _process(client: IAClient, batch) -> tuple[list, list]:
+    todo: queue.SimpleQueue = queue.SimpleQueue()
+    for row in batch:
+        todo.put(row)
+    done: queue.SimpleQueue = queue.SimpleQueue()
+    active: dict[int, tuple] = {}
+
+    def worker():
+        while True:
+            try:
+                row = todo.get_nowait()
+            except queue.Empty:
+                return
+            active[row["id"]] = (row, time.monotonic())
+            result = _one(client, row)
+            del active[row["id"]]
+            done.put(result)
+
+    for _ in range(min(NODE_CONCURRENCY, len(batch))):
+        threading.Thread(target=worker, daemon=True).start()
+
+    results = []
+    while len(results) < len(batch):
+        try:
+            results.append(done.get(timeout=5))
+        except queue.Empty:
+            pass
+        now = time.monotonic()
+        hung = [row for row, since in list(active.values())
+                if now - since > FILE_TIMEOUT]
+        if hung:
+            while not todo.empty():
+                todo.get_nowait()
+            while not done.empty():
+                results.append(done.get_nowait())
+            return results, hung
+    return results, []
 
 
 def _one(client: IAClient, row) -> tuple[int, dict]:

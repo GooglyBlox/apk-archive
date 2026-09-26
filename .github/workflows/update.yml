@@ -40,6 +40,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Restore database
+        id: restore
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/db-restore.sh
@@ -51,13 +52,23 @@ jobs:
       - name: Crawl item metadata
         run: python -m crawler --budget ${{ inputs.crawl_budget || 5400 }} crawl
 
+      - name: Store crawl progress
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/db-store.sh
+
       - name: Extract manifests
-        run: python -m crawler --budget ${{ inputs.enrich_budget || 10800 }} enrich
+        run: >-
+          timeout -k 60 $(( ${{ inputs.enrich_budget || 10800 }} + 1200 ))
+          python -m crawler --budget ${{ inputs.enrich_budget || 10800 }} enrich
 
       - name: Store database
+        id: store
+        if: ${{ !cancelled() && steps.restore.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/db-store.sh
 
       - name: Commit stats
+        if: ${{ !cancelled() && steps.store.outcome == 'success' }}
         run: bash scripts/commit-stats.sh "update"

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from io import BytesIO
 
 from PIL import Image
+from pyaxmlparser import bytecode
 
 from .config import (ANDROID_NS, DENSITY_ORDER, DEVICE_FEATURES, ICON_EXTENSIONS,
                      ICON_PX, ICON_QUALITY, MAX_ARSC_COMPRESSED_BYTES,
-                     MAX_NESTED_APK_BYTES,
+                     MAX_NESTED_APK_BYTES, MAX_PARSE_READ_FACTOR,
                      MAX_ICON_ENTRY_BYTES)
 from .remotezip import RemoteZip, RemoteZipError
 
@@ -19,11 +21,28 @@ ARSC_NAME = "resources.arsc"
 _REF_RE = re.compile(r"^@([0-9A-Fa-f]{6,8})$")
 _CLEAN_RE = re.compile(r"[._-]?v?\d+(\.\d+)*[a-z]?$", re.I)
 
+logging.getLogger("pyaxmlparser").setLevel(logging.CRITICAL)
+
 
 class ManifestError(Exception):
     def __init__(self, message: str, *, permanent: bool = True):
         super().__init__(message)
         self.permanent = permanent
+
+
+class _BoundedBuffHandle(bytecode.BuffHandle):
+    def __init__(self, buff):
+        super().__init__(buff)
+        self._budget = MAX_PARSE_READ_FACTOR * self.size() + 65536
+
+    def read(self, size):
+        self._budget -= getattr(size, "value", size)
+        if self._budget < 0:
+            raise ManifestError("parser read budget exhausted")
+        return super().read(size)
+
+
+bytecode.BuffHandle = _BoundedBuffHandle
 
 
 BUNDLE_MANIFESTS = ("manifest.json", "info.json", "meta.sai_v2.json", "meta.sai_v1.json")

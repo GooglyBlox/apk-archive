@@ -1,20 +1,20 @@
 {
   "items_known": 236981,
-  "items_crawled": 233800,
-  "files_indexed": 206288,
-  "files_enriched": 197039,
-  "files_pending": 413,
-  "files_failed": 8836,
-  "packages_known": 55616,
-  "updated_at": 1791456465,
+  "items_crawled": 236981,
+  "files_indexed": 209068,
+  "files_enriched": 199691,
+  "files_pending": 414,
+  "files_failed": 8963,
+  "packages_known": 56718,
+  "updated_at": 1791481150,
   "last_result": {
     "items_known": 236981,
-    "items_crawled": 233800,
-    "files_indexed": 206288,
-    "files_enriched": 197039,
-    "files_pending": 413,
-    "files_failed": 8836,
-    "packages_known": 55616,
-    "updated_at": 1791456465
+    "items_crawled": 236981,
+    "files_indexed": 209068,
+    "files_enriched": 199691,
+    "files_pending": 414,
+    "files_failed": 8963,
+    "packages_known": 56718,
+    "updated_at": 1791481150
   }
 }
